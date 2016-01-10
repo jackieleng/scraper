@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """Mostly utils for making html requests.
 """
 

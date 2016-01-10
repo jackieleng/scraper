@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 from scraper.crawler import main
 
 

@@ -1,4 +1,5 @@
-#!/usr/bin/env python
+"""Crawler logic.
+"""
 
 from html.parser import HTMLParser
 import random
