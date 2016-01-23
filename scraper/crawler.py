@@ -58,7 +58,7 @@ class LinkParser(HTMLParser):
 
 
 def check_url(url):
-    """Probe url first using HEAD request.
+    """Probe url first using a HEAD request and check if it's HTML.
 
     This checks if the page at the url is valid HTML based on its content
     type. Note that this probably doesn't 100% guarantee that it is HTML;
@@ -66,29 +66,30 @@ def check_url(url):
     """
     HTML_CONTENTTYPES = {'text/html'}
 
+    is_html = False
     response = head_request(url)
-    if not response:
-        return False
-    info = response.info()
-    content_type = info.get_content_type()
-    is_html = content_type in HTML_CONTENTTYPES
-    response.close()
+    if response:
+        info = response.info()
+        content_type = info.get_content_type()
+        is_html = content_type in HTML_CONTENTTYPES
+        response.close()
     return is_html
 
 
 def get_links(url):
     """Extract all links from html page, and return a list of those links"""
+    links = []
     response = get_request(url)
-    if not response:
-        return []
+    if response:
+        html_bytes = response.read()
+        html_text = decode_html(html_bytes, url=url)
+        response.close()
+        if not html_text:
+            return []
 
-    html_bytes = response.read()
-    html_text = decode_html(html_bytes, url=url)
-    if not html_text:
-        return []
-
-    parser = LinkParser()
-    return parser.get_links(url, html_text)
+        parser = LinkParser()
+        links = parser.get_links(url, html_text)
+    return links
 
 
 def parse_page(url):
@@ -139,6 +140,11 @@ def crawler(visited_urls, unvisited_urls):
               (len(visited_urls), len(unvisited_urls)))
         print("URLs visited: %s" % visited_urls)
             #print("URL frontier: %s" % unvisited_urls)
+
+
+class Crawler(object):
+    def __init__(self, base_url):
+        self.base_url = base_url
 
 
 def main():

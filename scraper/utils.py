@@ -20,9 +20,15 @@ def head_request(url):
     r = urllib.request.Request(url, method='HEAD', headers=SPOOF_HEADERS)
     try:
         response = urllib.request.urlopen(r)
-    except (HTTPError, URLError, UnicodeEncodeError) as e:
+    except (URLError, UnicodeEncodeError) as e:
         print("Can't probe this url: %s" % url)
         print(e)
+    except HTTPError as e:
+        print("Can't probe this url: %s" % url)
+        print(e)
+        # TODO: HTTPError 503 sometimes just means too many connections. So
+        # this should be retried and not discarded.
+        # Better to do this when the Crawler class is done?
     except Exception as e:
         print("Unknown exception with: %s" % url)
         raise
@@ -41,6 +47,8 @@ def get_request(url):
     except HTTPError as e:
         print("Failed to open url %s" % url)
         print(e)
+        # TODO: HTTPError 503 sometimes just means too many connections. So
+        # this should be retried and not discarded.
     except Exception as e:
         print("Exception with url %s" % url)
         raise
