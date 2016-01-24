@@ -4,6 +4,7 @@
 from html.parser import HTMLParser
 import random
 import time
+import threading
 from urllib.parse import urljoin, urlparse
 
 from .utils import (
@@ -16,6 +17,10 @@ VISITED_URLS = set()
 UNVISITED_URLS = [
     "https://www.reddit.com",
     "http://www.nu.nl",
+    "https://twitter.com",
+    "https://medium.com",
+    "https://etsy.com",
+    "http://www.ted.com",
     ]
 INTERVAL = 10  # politeness policy
 
@@ -109,7 +114,7 @@ def url_selector(urls):
     return urls.pop(i)
 
 
-def crawler(visited_urls, unvisited_urls):
+def crawler(visited_urls, unvisited_urls, lock):
     """This contains the actual crawler logic/structure.
 
     In the while loop the following steps are performed:
@@ -124,28 +129,59 @@ def crawler(visited_urls, unvisited_urls):
        is also added to the set of visited urls.
     """
     while len(unvisited_urls) > 0:
-        next_url = url_selector(unvisited_urls)
+        # next_url = None  # TODO: unsure about this does lock always return?
+        with lock:
+            next_url = url_selector(unvisited_urls)
+
         if check_url(next_url):
             time.sleep(INTERVAL)  # parse page makes a request
             fetched_urls = parse_page(next_url)
         else:
             time.sleep(INTERVAL)  # check_url makes a request
             continue
-        visited_urls.add(next_url)
-        for url in fetched_urls:
-            if url not in visited_urls:
-                unvisited_urls.append(url)
+        # TODO: Not sure if lock is needed
+        with lock:
+            visited_urls.add(next_url)
+            for url in fetched_urls:
+                if url not in visited_urls:
+                    unvisited_urls.append(url)
 
+        print("URLs visited: %s" % visited_urls)
+        # print("URL frontier: %s" % unvisited_urls)
         print("Number of urls visited: %s, unvisited: %s" %
               (len(visited_urls), len(unvisited_urls)))
-        print("URLs visited: %s" % visited_urls)
-            #print("URL frontier: %s" % unvisited_urls)
+        print("%s Active threads %s" % (threading.active_count(),
+                                        threading.enumerate()))
 
 
-class Crawler(object):
-    def __init__(self, base_url):
-        self.base_url = base_url
+class Crawler(threading.Thread):
+    def __init__(self, visited_urls, unvisited_urls, lock, base_url=None):
+        super(Crawler, self).__init__()
+        self.base_url = base_url  # TODO
+        self.visited_urls = visited_urls
+        self.unvisited_urls = unvisited_urls
+        self.lock = lock
+
+    def run(self):
+        print("Starting a new Crawler...")
+        crawler(self.visited_urls, self.unvisited_urls, self.lock)
 
 
 def main():
-    crawler(VISITED_URLS, UNVISITED_URLS)
+    lock = threading.RLock()
+    threads = []
+    visited_urls = VISITED_URLS
+    unvisited_urls = UNVISITED_URLS
+    for i in range(3):
+        c = Crawler(visited_urls, unvisited_urls, lock)
+        threads.append(c)
+
+    for t in threads:
+        t.start()
+
+    print("Threads: %s" % threads)
+
+    for t in threads:
+        print("Joining thread: %s" % t)
+        t.join()
+        print("Joined thread: %s" % t)

@@ -14,7 +14,9 @@ SPOOF_HEADERS = {
 def head_request(url):
     """Make a HEAD request.
 
-    NOTE: returns None if it fails, with exception of uncaught Exceptions
+    NOTE: returns None if it fails
+
+    TODO: log unhandled/unseen Exceptions
     """
     response = None
     r = urllib.request.Request(url, method='HEAD', headers=SPOOF_HEADERS)
@@ -30,15 +32,16 @@ def head_request(url):
         # this should be retried and not discarded.
         # Better to do this when the Crawler class is done?
     except Exception as e:
-        print("Unknown exception with: %s" % url)
-        raise
+        print("Can't probe %s, got this new exception: %s" % (url, e))
     return response
 
 
 def get_request(url):
     """Make a GET request.
 
-    NOTE: returns None if it fails, with exception of uncaught Exceptions
+    NOTE: returns None if it fails
+
+    TODO: log unhandled/unseen Exceptions
     """
     response = None
     r = urllib.request.Request(url, headers=SPOOF_HEADERS)
@@ -50,8 +53,7 @@ def get_request(url):
         # TODO: HTTPError 503 sometimes just means too many connections. So
         # this should be retried and not discarded.
     except Exception as e:
-        print("Exception with url %s" % url)
-        raise
+        print("Failed to get url %s, got this exception: %s" % (url, e))
     return response
 
 
